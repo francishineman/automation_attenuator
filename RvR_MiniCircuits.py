@@ -2,17 +2,16 @@ import time
 import pyvisa
 import matplotlib.pyplot as plt
 from netmiko import ConnectHandler
-import re  # For regular expressions (iperf output parsing)
+import re
 
-# Configuration (adjust these)
 ATTENUATOR_VISA_ADDRESS = "TCPIP0::192.168.1.100::502::SOCKET"
 WIRELESS_CLIENT_IP = "192.168.1.200"
 WIRELESS_CLIENT_USERNAME = "your_username"
 WIRELESS_CLIENT_PASSWORD = "your_password"
 WIRELESS_INTERFACE = "wlan0"
-IPERF_SERVER_IP = "192.168.1.101" # IP of the iperf server
+IPERF_SERVER_IP = "192.168.1.101"
 TEST_RANGES_DB = range(0, 61, 5)
-TEST_DURATION_SEC = 10  # Duration for iperf test at each attenuation level
+TEST_DURATION_SEC = 10
 
 
 class AttenuatorControl:
@@ -30,7 +29,7 @@ class AttenuatorControl:
             # Adapt this command to your attenuator's specific command
             self.attenuator.write(f"ATT {attenuation_db} dB")  # Example SCPI command
             print(f"Set attenuation to {attenuation_db} dB")
-            time.sleep(1)  # Allow time for the attenuator to adjust
+            time.sleep(1)
         except Exception as e:
             print(f"Error setting attenuation: {e}")
 
@@ -44,11 +43,11 @@ class AttenuatorControl:
 class WirelessClient:
     def __init__(self, ip, username, password, interface, iperf_server_ip):
         self.device = {
-            "device_type": "linux",  # Or appropriate device type for your client
+            "device_type": "linux",
             "ip": ip,
             "username": username,
             "password": password,
-            "port": 22,  # Default SSH port
+            "port": 22,
             "timeout": 10,
             "conn_timeout": 10,
         }
@@ -69,15 +68,14 @@ class WirelessClient:
             raise Exception("Not connected to wireless client. Call connect() first.")
 
         try:
-            command = f"iperf3 -c {self.iperf_server_ip} -t {TEST_DURATION_SEC} -i 1"  # Run iperf3 client
+            command = f"iperf3 -c {self.iperf_server_ip} -t {TEST_DURATION_SEC} -i 1"
             output = self.net_connect.send_command(command)
-            # Parse iperf output for bandwidth
             bandwidth = 0
             for line in output.splitlines():
-                match = re.search(r"\[\s*5\]\s*(\d+\.\d+)\s*Mbits/sec", line)  # Example: [  5]   789.45 Mbits/sec
+                match = re.search(r"\[\s*5\]\s*(\d+\.\d+)\s*Mbits/sec", line)
                 if match:
                     bandwidth = float(match.group(1))
-                    break # Stop looking after finding the rate
+                    break
             if bandwidth == 0:
               print(f"Could not parse iperf output. Output was:\n{output}")
             return bandwidth
@@ -91,7 +89,7 @@ class WirelessClient:
             self.net_connect.disconnect()
             print("Wireless client connection closed.")
 
-# Main script
+
 if __name__ == "__main__":
     attenuator = None
     wireless_client = None
@@ -105,12 +103,11 @@ if __name__ == "__main__":
 
         for db in TEST_RANGES_DB:
             attenuator.set_attenuation(db)
-            time.sleep(2) # Added a small delay to ensure the attenuation is set
+            time.sleep(2)
             bandwidth = wireless_client.run_iperf()
             bandwidths.append(bandwidth)
             attenuations.append(db)
 
-        # Plotting
         plt.plot(attenuations, bandwidths, marker='o')
         plt.xlabel("Attenuation (dB)")
         plt.ylabel("Iperf Bandwidth (Mbits/sec)")
