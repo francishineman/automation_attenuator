@@ -14,17 +14,56 @@ IPERF_SERVER_IP = "192.168.1.101" # IP of the iperf server
 TEST_RANGES_DB = range(0, 61, 5)
 TEST_DURATION_SEC = 10  # Duration for iperf test at each attenuation level
 
+
 class AttenuatorControl:
-    # ... (same as previous example)
+    def __init__(self, visa_address):
+        self.rm = pyvisa.ResourceManager()
+        try:
+            self.attenuator = self.rm.open_resource(visa_address)
+            print(f"Connected to attenuator at {visa_address}")
+        except Exception as e:
+            print(f"Error connecting to attenuator: {e}")
+            raise
+
+    def set_attenuation(self, attenuation_db):
+        try:
+            # Adapt this command to your attenuator's specific command
+            self.attenuator.write(f"ATT {attenuation_db} dB")  # Example SCPI command
+            print(f"Set attenuation to {attenuation_db} dB")
+            time.sleep(1)  # Allow time for the attenuator to adjust
+        except Exception as e:
+            print(f"Error setting attenuation: {e}")
+
+    def close(self):
+        if self.attenuator:
+            self.attenuator.close()
+            self.rm.close()
+            print("Attenuator connection closed.")
+
 
 class WirelessClient:
     def __init__(self, ip, username, password, interface, iperf_server_ip):
-        # ... (same as previous example)
+        self.device = {
+            "device_type": "linux",  # Or appropriate device type for your client
+            "ip": ip,
+            "username": username,
+            "password": password,
+            "port": 22,  # Default SSH port
+            "timeout": 10,
+            "conn_timeout": 10,
+        }
+        self.net_connect = None
+        self.interface = interface
         self.iperf_server_ip = iperf_server_ip
 
     def connect(self):
-        # ... (same as previous example)
-
+        try:
+            self.net_connect = ConnectHandler(**self.device)
+            print(f"Connected to wireless client at {self.device['ip']}")
+        except Exception as e:
+            print(f"Error connecting to wireless client: {e}")
+            raise
+            
     def run_iperf(self):
         if not self.net_connect:
             raise Exception("Not connected to wireless client. Call connect() first.")
@@ -48,8 +87,9 @@ class WirelessClient:
 
 
     def close(self):
-        # ... (same as previous example)
-
+        if self.net_connect:
+            self.net_connect.disconnect()
+            print("Wireless client connection closed.")
 
 # Main script
 if __name__ == "__main__":
