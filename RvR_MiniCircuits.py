@@ -26,7 +26,6 @@ class AttenuatorControl:
 
     def set_attenuation(self, attenuation_db):
         try:
-            # Adapt this command to your attenuator's specific command
             self.attenuator.write(f"ATT {attenuation_db} dB")  # Example SCPI command
             print(f"Set attenuation to {attenuation_db} dB")
             time.sleep(1)
